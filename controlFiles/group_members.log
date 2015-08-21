@@ -1,0 +1,211 @@
+1                                                          The SAS System                              08:20 Friday, August 14, 2015
+
+NOTE: Copyright (c) 2002-2012 by SAS Institute Inc., Cary, NC, USA. 
+NOTE: SAS (r) Proprietary Software 9.4 (TS1M3) 
+      Licensed to JYSKE BANK - GRP 1+2+4 - 64 BIT, Site 50804650.
+NOTE: This session is executing on the Linux 2.6.32-573.1.1.el6.x86_64 (LIN X64) platform.
+
+
+
+NOTE: Updated analytical products:
+      
+      SAS/STAT 14.1
+      SAS/ETS 14.1
+      SAS/OR 14.1
+      SAS/IML 14.1
+
+NOTE: Additional host information:
+
+ Linux LIN X64 2.6.32-573.1.1.el6.x86_64 #1 SMP Tue Jul 14 02:46:51 EDT 2015 x86_64 Red Hat Enterprise Linux Server release 6.7 
+      (Santiago) 
+
+You are running SAS 9. Some SAS 8 files will be automatically converted 
+by the V9 engine; others are incompatible.  Please see 
+http://support.sas.com/rnd/migration/planning/platform/64bit.html
+
+PROC MIGRATE will preserve current SAS file attributes and is 
+recommended for converting all your SAS libraries from any 
+SAS 8 release to SAS 9.  For details and examples, please see
+http://support.sas.com/rnd/migration/index.html
+
+
+This message is contained in the SAS news file, and is presented upon
+initialization.  Edit the file "news" in the "misc/base" directory to
+display site-specific news and information in the program log.
+The command line option "-nonews" will prevent this display.
+
+
+
+
+NOTE: SAS initialization used:
+      real time           0.04 seconds
+      cpu time            0.02 seconds
+      
+1          /*******************************************************************************
+2          
+3          PROGRAM   : group_members.sas
+4          
+5          LAVET AF  : DKSAS30 ( Esben A Black )
+6          
+7          DATO      : 03 August 2015
+8          ________________________________________________________________________________
+9          
+10         FORR.ANSV.: Birger Larsen (JB1416)
+11         
+12         FORMÅL:
+13         Målet er at lave en liste hvor der for hver gruppe listes dens medlemmer.
+14         ________________________________________________________________________________
+15         
+16         LOG:
+17         Dato:	    Hvem:                       Ændring:
+2                                                          The SAS System                              08:20 Friday, August 14, 2015
+
+18         03 Aug 2015	(DKSAS30) Esben A Black     Første version
+19          *******************************************************************************/
+20         %let AD_SYNC_PATH=%sysget(AD_SYNC_FOLDER);
+21         %let ACTIVE_SYMLINKS_FOLDER=%sysget(ACTIVE_SYMLINKS_FOLDER);
+22         %let TMPDIR=%sysget(TMPDIR);
+23         %let TMP=%sysget(TMPDIR);
+24         libname TMP "&TMP.";
+NOTE: Libref TMP was successfully assigned as follows: 
+      Engine:        V9 
+      Physical Name: /tmp/setgroup.ET8jV6
+25         LIBNAME AD "&AD_SYNC_PATH.";
+NOTE: Libref AD was successfully assigned as follows: 
+      Engine:        V9 
+      Physical Name: /sasdata/AD_Integration/dwh_brg1
+26         DATA WORK.interesting_groups;
+27         	LENGTH
+28         	group            $ 256
+29         	symlinkname      $ 256
+30         	path             $ 256 ;
+31         	FORMAT
+32         	group            $CHAR256.
+33         	symlinkname      $CHAR256.
+34         	path             $CHAR256. ;
+35         	INFORMAT
+36         	group            $CHAR256.
+37         	symlinkname      $CHAR256.
+38         	path             $CHAR256. ;
+39         	INFILE "&ACTIVE_SYMLINKS_FOLDER./group_symlinks.txt"
+40         	LRECL=256
+41         	ENCODING="UTF-8"	
+42         	DLM='2c'x
+43         	MISSOVER
+44         	DSD ;
+45         	INPUT
+46         	group            : $CHAR256.
+47         	symlinkname      : $CHAR256.
+48         	path             : $CHAR256. ;
+49         RUN;
+
+NOTE: The infile "/sasdata/AD_Integration/controlFiles/group_symlinks.txt" is:
+      Filename=/sasdata/AD_Integration/controlFiles/group_symlinks.txt,
+      Owner Name=root,Group Name=root,
+      Access Permission=-rw-r-----,
+      Last Modified=12. august 2015 08:22:31,
+      File Size (bytes)=56
+
+NOTE: 2 records were read from the infile "/sasdata/AD_Integration/controlFiles/group_symlinks.txt".
+      The minimum record length was 23.
+      The maximum record length was 29.
+NOTE: The data set WORK.INTERESTING_GROUPS has 2 observations and 3 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      cpu time            0.00 seconds
+      
+
+50         /*
+51            proc SQL noprint;
+52         	create table unique_groups as select distinct (group) from WORK.interesting_groups;
+3                                                          The SAS System                              08:20 Friday, August 14, 2015
+
+53         quit;
+54         */
+55         PROC SQL;
+56         CREATE TABLE WORK.usersInGroups AS
+57         SELECT groups.keyid,
+58         	   users.memkeyid,
+59         	   interesting_groups.symlinkname,
+60         	   interesting_groups.path
+61         	FROM AD.idgrps groups
+62             INNER JOIN work.interesting_groups ON (groups.keyid = interesting_groups.group)
+63         	INNER JOIN AD.grpmems users ON (groups.keyid = users.grpkeyid);
+NOTE: Table WORK.USERSINGROUPS created, with 34 rows and 4 columns.
+
+64         	QUIT;
+NOTE: PROCEDURE SQL used (Total process time):
+      real time           0.07 seconds
+      cpu time            0.01 seconds
+      
+
+65         
+66         	
+66       !  proc export data=WORK.usersInGroups
+67         	outfile="&TMPDIR./usersInGroups.txt"
+68         	dbms=csv
+69         	replace;
+70         	putnames=no;
+71         	run;
+
+72          /**********************************************************************
+73          *   PRODUCT:   SAS
+74          *   VERSION:   9.4
+75          *   CREATOR:   External File Interface
+76          *   DATE:      14AUG15
+77          *   DESC:      Generated SAS Datastep Code
+78          *   TEMPLATE SOURCE:  (None Specified.)
+79          ***********************************************************************/
+80             data _null_;
+81             %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+82             %let _EFIREC_ = 0;     /* clear export record count macro variable */
+83             file '/tmp/setgroup.ET8jV6/usersInGroups.txt' delimiter=',' DSD DROPOVER lrecl=32767;
+84            set  WORK.USERSINGROUPS   end=EFIEOD;
+85                format keyid $200. ;
+86                format memkeyid $200. ;
+87                format symlinkname $char256. ;
+88                format path $char256. ;
+89              do;
+90                EFIOUT + 1;
+91                put keyid $ @;
+92                put memkeyid $ @;
+93                put symlinkname $ @;
+94                put path $ ;
+95                ;
+96              end;
+97             if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+98             if EFIEOD then call symputx('_EFIREC_',EFIOUT);
+99             run;
+
+NOTE: The file '/tmp/setgroup.ET8jV6/usersInGroups.txt' is:
+4                                                          The SAS System                              08:20 Friday, August 14, 2015
+
+      Filename=/tmp/setgroup.ET8jV6/usersInGroups.txt,
+      Owner Name=root,Group Name=root,
+      Access Permission=-rw-------,
+      Last Modified=14. august 2015 08:20:54
+
+NOTE: 34 records were written to the file '/tmp/setgroup.ET8jV6/usersInGroups.txt'.
+      The minimum record length was 35.
+      The maximum record length was 36.
+NOTE: There were 34 observations read from the data set WORK.USERSINGROUPS.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      cpu time            0.00 seconds
+      
+
+34 records created in /tmp/setgroup.ET8jV6/usersInGroups.txt from WORK.USERSINGROUPS.
+  
+  
+NOTE: "/tmp/setgroup.ET8jV6/usersInGroups.txt" file was successfully created.
+NOTE: PROCEDURE EXPORT used (Total process time):
+      real time           0.48 seconds
+      cpu time            0.05 seconds
+      
+
+
+NOTE: SAS Institute Inc., SAS Campus Drive, Cary, NC USA 27513-2414
+NOTE: The SAS System used:
+      real time           0.62 seconds
+      cpu time            0.09 seconds
+      
